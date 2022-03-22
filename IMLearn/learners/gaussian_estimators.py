@@ -2,6 +2,8 @@ from __future__ import annotations
 import numpy as np
 from numpy.linalg import inv, det, slogdet
 
+ERR_NOT_FITTED = "Estimator must first be fitted before calling `pdf` function"
+
 
 class UnivariateGaussian:
     """
@@ -13,7 +15,7 @@ class UnivariateGaussian:
 
         Parameters
         ----------
-        biased_var : bool, default=True
+        biased_var : bool, default=False
             Should fitted estimator of variance be a biased or unbiased estimator
 
         Attributes
@@ -51,7 +53,14 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+        # self.mu_ = np.divide(np.sum(X), len(X))
+
+        self.mu_ = X.mean()
+
+        if self.biased_:
+            self.var_ = np.var(X)
+        else:
+            self.var_ = np.var(X, ddof=1)
 
         self.fitted_ = True
         return self
@@ -75,8 +84,11 @@ class UnivariateGaussian:
         ValueError: In case function was called prior fitting the model
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+            raise ValueError(ERR_NOT_FITTED)
+        # TODO: test
+        numerator = np.exp(-(np.divide(np.square(X - self.mu_), (2 * self.var_))))
+        denominator = np.sqrt(2 * np.pi * self.var_)
+        return np.divide(numerator, denominator).reshape(X.shape)
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
@@ -97,7 +109,12 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        raise NotImplementedError()
+
+        numerator = np.prod(np.exp(-np.divide(np.square(X.T - mu), 2 * sigma)))
+
+        denominator = np.power(2 * np.pi * sigma, 0.5 * X.size)
+
+        return np.log(np.divide(numerator, denominator))
 
 
 class MultivariateGaussian:
@@ -143,7 +160,9 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+        self.cov_ = 4
+
+        self.mu_ = 1
 
         self.fitted_ = True
         return self
@@ -190,3 +209,34 @@ class MultivariateGaussian:
             log-likelihood calculated
         """
         raise NotImplementedError()
+
+
+if __name__ == '__main__':
+    # tests for UnivariateGaussian:
+
+    sample_test_0 = np.random.randint(1, 15, size=20)
+    print(f"{'-'*30}\nsample 0:\n{sample_test_0}\nshape:{sample_test_0.shape}\n")
+
+    numer = np.exp(-(np.divide(np.square(sample_test_0 - 1), (2 * 2))))
+    deno = np.sqrt(2 * np.pi * 2)
+    sample_test_1 = np.divide(numer, deno)
+    print(f"{'-'*30}\nsample 1:\n{sample_test_1}\nshape:\n{sample_test_1.shape}\n")
+
+    sample_test_2 = sample_test_1.reshape(sample_test_0.shape)
+    print(f"{'-'*30}\nsample 2:\n{sample_test_2}\nshape:\n{sample_test_2.shape}\n")
+
+    sample_test_3 = np.random.randint(1, 15, size=20)
+    print(f"{'-'*30}\nsample 3:\n{sample_test_3}\nshape:\n{sample_test_3.shape}\nsize:\n{sample_test_3.size}\n")
+
+    sample_test_4 = np.random.randint(1, 15, (4, 5))
+    print(f"{'-'*30}\nsample 4:\n{sample_test_4}\nshape:\n{sample_test_4.shape}\nsize:\n{sample_test_4.size}\n")
+
+    sample_test_5 = np.array([1, 3, 0])
+    prod = np.prod(sample_test_5)
+    print(f"{'-' * 30}\nsample 5:\n{sample_test_5}\nnp.prod:\n{prod}\n")
+
+    sample_test_6 = np.random.normal(10, 1, size=10)
+    print(f"{'-'*30}\nsample 4:\n{sample_test_6}\nshape:\n{sample_test_6.shape}\nsize:\n{sample_test_6.size}\n")
+
+    # tests for MultivariateGaussian:
+
