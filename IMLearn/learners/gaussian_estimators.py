@@ -9,7 +9,8 @@ class UnivariateGaussian:
     """
     Class for univariate Gaussian Distribution Estimator
     """
-    def __init__(self, biased_var: bool = False) -> UnivariateGaussian:
+
+    def __init__(self, biased_var: bool = False) -> None:
         """
         Estimator for univariate Gaussian mean and variance parameters
 
@@ -110,6 +111,12 @@ class UnivariateGaussian:
             log-likelihood calculated
         """
 
+        # num_after_log = -0.5 * np.sum(np.divide(np.square(X.T - mu), 2 * sigma)) * X.size
+        # dom_after_log = -0.5 * np.log(2 * np.pi * sigma) * X.size
+        # return  num_after_log + dom_after_log
+
+        # TODO: from 9. and google log likelihood
+
         numerator = np.prod(np.exp(-np.divide(np.square(X.T - mu), 2 * sigma)))
 
         denominator = np.power(2 * np.pi * sigma, 0.5 * X.size)
@@ -121,7 +128,8 @@ class MultivariateGaussian:
     """
     Class for multivariate Gaussian Distribution Estimator
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         """
         Initialize an instance of multivariate Gaussian estimator
 
@@ -160,14 +168,16 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        self.cov_ = 4
+        # TODO: test
 
-        self.mu_ = 1
+        self.mu_ = X.mean(axis=1)
+
+        self.cov_ = np.var(X)
 
         self.fitted_ = True
         return self
 
-    def pdf(self, X: np.ndarray):
+    def pdf(self, X: np.ndarray) -> np.ndarray:
         """
         Calculate PDF of observations under Gaussian model with fitted estimators
 
@@ -186,8 +196,13 @@ class MultivariateGaussian:
         ValueError: In case function was called prior fitting the model
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+            raise ValueError(ERR_NOT_FITTED)
+
+        # TODO: not correct - might be the log likelihood
+        d = 5  # TODO: ?
+
+        numerator = np.prod(np.exp(-0.5 * (X - self.mu_).T @ inv(self.cov_) @ (X - self.mu_)))
+        denominator = np.power(np.power(2 * np.pi, d) * det(self.cov_), 0.5 * X.size)
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
@@ -215,28 +230,27 @@ if __name__ == '__main__':
     # tests for UnivariateGaussian:
 
     sample_test_0 = np.random.randint(1, 15, size=20)
-    print(f"{'-'*30}\nsample 0:\n{sample_test_0}\nshape:{sample_test_0.shape}\n")
+    print(f"{'-' * 30}\nsample 0:\n{sample_test_0}\nshape:{sample_test_0.shape}\n")
 
     numer = np.exp(-(np.divide(np.square(sample_test_0 - 1), (2 * 2))))
     deno = np.sqrt(2 * np.pi * 2)
     sample_test_1 = np.divide(numer, deno)
-    print(f"{'-'*30}\nsample 1:\n{sample_test_1}\nshape:\n{sample_test_1.shape}\n")
+    print(f"{'-' * 30}\nsample 1:\n{sample_test_1}\nshape:\n{sample_test_1.shape}\n")
 
     sample_test_2 = sample_test_1.reshape(sample_test_0.shape)
-    print(f"{'-'*30}\nsample 2:\n{sample_test_2}\nshape:\n{sample_test_2.shape}\n")
+    print(f"{'-' * 30}\nsample 2:\n{sample_test_2}\nshape:\n{sample_test_2.shape}\n")
 
     sample_test_3 = np.random.randint(1, 15, size=20)
-    print(f"{'-'*30}\nsample 3:\n{sample_test_3}\nshape:\n{sample_test_3.shape}\nsize:\n{sample_test_3.size}\n")
+    print(f"{'-' * 30}\nsample 3:\n{sample_test_3}\nshape:\n{sample_test_3.shape}\nsize:\n{sample_test_3.size}\n")
 
     sample_test_4 = np.random.randint(1, 15, (4, 5))
-    print(f"{'-'*30}\nsample 4:\n{sample_test_4}\nshape:\n{sample_test_4.shape}\nsize:\n{sample_test_4.size}\n")
+    print(f"{'-' * 30}\nsample 4:\n{sample_test_4}\nshape:\n{sample_test_4.shape}\nsize:\n{sample_test_4.size}\n")
 
     sample_test_5 = np.array([1, 3, 0])
     prod = np.prod(sample_test_5)
     print(f"{'-' * 30}\nsample 5:\n{sample_test_5}\nnp.prod:\n{prod}\n")
 
     sample_test_6 = np.random.normal(10, 1, size=10)
-    print(f"{'-'*30}\nsample 4:\n{sample_test_6}\nshape:\n{sample_test_6.shape}\nsize:\n{sample_test_6.size}\n")
+    print(f"{'-' * 30}\nsample 4:\n{sample_test_6}\nshape:\n{sample_test_6.shape}\nsize:\n{sample_test_6.size}\n")
 
     # tests for MultivariateGaussian:
-
