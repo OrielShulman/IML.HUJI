@@ -4,6 +4,17 @@ from numpy.linalg import inv, det, slogdet
 
 ERR_NOT_FITTED = "Estimator must first be fitted before calling `pdf` function"
 
+# MG:
+# fit:
+# - axis=0 | axis=1 (cols)
+# - rowvar=False | rowvar=True (for rows variables)
+# pdf:
+# - float return value?
+# - used X.size instead of len(self.mu_)
+# l_l:
+# - used X.shape[0] instead of len(mu)
+# - used mu.size instead of len(X)
+
 
 class UnivariateGaussian:
     """
@@ -54,8 +65,8 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
-        # self.mu_ = np.divide(np.sum(X), len(X))
-
+        # equations 1.2 & 1.3 in course material
+        # self.mu_ = np.divide(np.sum(X), X.size)
         self.mu_ = X.mean()
 
         if self.biased_:
@@ -86,7 +97,8 @@ class UnivariateGaussian:
         """
         if not self.fitted_:
             raise ValueError(ERR_NOT_FITTED)
-        # TODO: test
+
+        #  1.1.2 in course materials
         numerator = np.exp(-(np.divide(np.square(X - self.mu_), (2 * self.var_))))
         denominator = np.sqrt(2 * np.pi * self.var_)
         return np.divide(numerator, denominator).reshape(X.shape)
@@ -110,18 +122,14 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
+        # equation 1.6 from course material
 
-        # num_after_log = -0.5 * np.sum(np.divide(np.square(X.T - mu), 2 * sigma)) * X.size
-        # dom_after_log = -0.5 * np.log(2 * np.pi * sigma) * X.size
-        # return  num_after_log + dom_after_log
+        # numerator = np.prod(np.exp(-np.divide(np.square(X.T - mu), 2 * sigma)))
+        # denominator = np.power(2 * np.pi * sigma, 0.5 * X.size)
+        # return np.log(np.divide(numerator, denominator))
 
-        # TODO: from 9. and google log likelihood
-
-        numerator = np.prod(np.exp(-np.divide(np.square(X.T - mu), 2 * sigma)))
-
-        denominator = np.power(2 * np.pi * sigma, 0.5 * X.size)
-
-        return np.log(np.divide(numerator, denominator))
+        # applying natural log on the LL:
+        return -0.5 * (X.size * np.log(2 * np.pi * sigma) + (np.sum(np.square(X - mu)) / sigma))
 
 
 class MultivariateGaussian:
@@ -168,13 +176,13 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        # TODO: test
 
-        self.mu_ = X.mean(axis=1)
+        self.mu_ = X.mean(axis=0)
 
-        self.cov_ = np.var(X)
-
+        #  1.2.4 in course materials
+        self.cov_ = np.cov(rowvar=False)
         self.fitted_ = True
+
         return self
 
     def pdf(self, X: np.ndarray) -> np.ndarray:
@@ -198,11 +206,16 @@ class MultivariateGaussian:
         if not self.fitted_:
             raise ValueError(ERR_NOT_FITTED)
 
-        # TODO: not correct - might be the log likelihood
-        d = 5  # TODO: ?
+        # TODO: delete later
+        print(f"pdf:\nlen(self.mu_) -->  X.size\nX.size = {X.size}, len(self.mu_) = {len(self.mu_)}\n")
+        assert X.size == len(self.mu_), "X.size == self.mu_ (Delete this later)"
 
-        numerator = np.prod(np.exp(-0.5 * (X - self.mu_).T @ inv(self.cov_) @ (X - self.mu_)))
-        denominator = np.power(np.power(2 * np.pi, d) * det(self.cov_), 0.5 * X.size)
+        #  1.2.5 in course materials
+        d = X.size  # number of random variables
+        numerator = np.exp(-0.5 * (X - self.mu_).T @ inv(self.cov_) @ (X - self.mu_))
+        denominator = np.sqrt(np.power(2 * np.pi, d) * det(self.cov_))
+
+        return np.divide(numerator, denominator)
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
@@ -223,7 +236,27 @@ class MultivariateGaussian:
         log_likelihood: float
             log-likelihood calculated over all input data and under given parameters of Gaussian
         """
-        raise NotImplementedError()
+        # TODO: delete later
+        print(f"log_likelihood:\n"
+              f"len(mu) --> X.shape[0]\n"
+              f"len(X) --> mu.size\n"
+              f"len(mu) = {len(mu)}, X.shape[0] = {X.shape[0]} | len(X) = {len(X)}, mu.size = {mu.size}")
+
+        print(f"|||||| {X.shape[0]} <-> {mu.size} | m <-> p ||||||")
+
+        assert X.shape[0] == mu.size, "X.size == self.mu_ (Delete this later)"
+
+        #  derived from 1.2.5 in course materials
+        m = X.shape[0]  # number of random variables (n_samples)
+        p = mu.size  # (n_features)
+
+        e1 = -0.5 * m * p * np.log(2 * np.pi)
+
+        e2 = -0.5 * m * np.log(det(cov))
+
+        e3 = -0.5 * np.sum((X - mu).T @ inv(cov) @ (X - mu))  # np.sum([(x-mu).T @ inv(cov) @ (x-mu) for x in X])
+
+        return e1 + e2 + e3
 
 
 if __name__ == '__main__':
@@ -254,3 +287,10 @@ if __name__ == '__main__':
     print(f"{'-' * 30}\nsample 4:\n{sample_test_6}\nshape:\n{sample_test_6.shape}\nsize:\n{sample_test_6.size}\n")
 
     # tests for MultivariateGaussian:
+    sample_test_7 = np.arange(34)
+    print(f"{'-' * 30}\nshape:\n{sample_test_7.shape}\nsize:\n{sample_test_7.size}\nlen:\n{len(sample_test_7)}\n")
+
+    x = np.ones((3, 4))
+    print(x)
+    print(len(x))
+    print(x.size)
